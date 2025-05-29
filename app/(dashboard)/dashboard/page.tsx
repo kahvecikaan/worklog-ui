@@ -204,7 +204,7 @@ export default function DashboardPage() {
             {worklogTypeBreakdown.map((type) => (
               <div key={type.typeName}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium">{type.typeName}</span>
+                  <span className="text-gray-900">{type.typeName}</span>
                   <span className="text-gray-600">
                     {type.hours} hours ({type.percentage.toFixed(1)}%)
                   </span>

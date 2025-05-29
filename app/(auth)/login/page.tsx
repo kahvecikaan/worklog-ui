@@ -8,9 +8,10 @@ import { z } from "zod";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { authApi } from "@/lib/api";
 import { LoginRequest } from "@/lib/types";
+import { AlertCircle } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const {
     register,
@@ -36,6 +38,8 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginRequest) => {
     setIsLoading(true);
+    setLoginError(null);
+
     try {
       const user = await authApi.login(data);
       toast.success(`Welcome back, ${user.firstName}!`);
@@ -46,7 +50,24 @@ export default function LoginPage() {
       router.refresh();
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(error.response?.data || "Invalid email or password");
+
+      // Extract error message from response
+      let errorMessage = "Invalid email or password";
+
+      if (error.response?.data) {
+        if (typeof error.response.data === "string") {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setLoginError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -66,6 +87,17 @@ export default function LoginPage() {
 
         <Card>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Error Alert */}
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Login Failed</p>
+                  <p className="text-sm mt-1">{loginError}</p>
+                </div>
+              </div>
+            )}
+
             <Input
               label="Email address"
               type="email"
