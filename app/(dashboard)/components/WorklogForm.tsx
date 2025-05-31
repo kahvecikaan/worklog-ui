@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -21,15 +21,16 @@ const worklogSchema = z.object({
     .string()
     .min(1, "Hours worked is required")
     .refine(
-      (val) => !isNaN(Number(val)) && Number(val) > 0 && Number(val) <= 24,
+      (val) => !isNaN(Number(val)) && Number(val) > 0 && Number(val) <= 8,
       {
-        message: "Hours must be between 0 and 24",
+        message: "Hours must be between 0 and 8",
       }
     ),
   projectName: z.string().optional(),
   description: z.string().min(10, "Description must be at least 10 characters"),
 });
 
+// automatically create Typescript type from the Zod schema
 type WorklogFormData = z.infer<typeof worklogSchema>;
 
 interface WorklogFormProps {
@@ -70,7 +71,7 @@ export function WorklogForm({ worklog }: WorklogFormProps) {
     }
   };
 
-  const onSubmit = async (data: WorklogFormData) => {
+  const onSubmit: SubmitHandler<WorklogFormData> = async (data) => {
     setIsLoading(true);
     try {
       const payload: WorklogCreateRequest = {

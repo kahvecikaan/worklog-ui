@@ -209,7 +209,7 @@ export default function EmployeeDetailPage() {
       {/* Header with back button */}
       <div className="mb-6">
         <Button
-          variant="secondary"
+          variant="ghost"
           size="sm"
           onClick={() => router.back()}
           className="mb-4"
