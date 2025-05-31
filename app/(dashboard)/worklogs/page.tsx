@@ -87,7 +87,7 @@ export default function WorklogsPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-md"
             />
           </div>
           <div className="flex-1">
@@ -98,7 +98,7 @@ export default function WorklogsPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border text-gray-900 border-gray-300 rounded-md"
             />
           </div>
           <div className="flex gap-2">

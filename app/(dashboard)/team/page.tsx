@@ -8,7 +8,7 @@ import {
   startOfMonth,
   endOfMonth,
 } from "date-fns";
-import { Users, Clock, TrendingUp, Calendar } from "lucide-react";
+import { Users, Clock, TrendingUp, Calendar, ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -16,6 +16,7 @@ import { employeeApi, worklogApi, authApi } from "@/lib/api";
 import { Employee, Worklog, User } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { canViewDepartmentData } from "@/lib/auth";
+import Link from "next/link";
 
 type PeriodFilter = "week" | "month" | "custom";
 
@@ -196,7 +197,7 @@ export default function TeamPage() {
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 text-gray-900">
           <input
             type="date"
             value={startDate}
@@ -289,6 +290,9 @@ export default function TeamPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Progress
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -299,7 +303,10 @@ export default function TeamPage() {
                 return (
                   <tr key={stat.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
+                      <Link
+                        href={`/employees/${stat.id}`}
+                        className="flex items-center hover:text-blue-600 transition-colors"
+                      >
                         <div className="flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-700">
                             {stat.firstName[0]}
@@ -314,7 +321,7 @@ export default function TeamPage() {
                             {stat.email}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{stat.role}</div>
@@ -359,6 +366,15 @@ export default function TeamPage() {
                           {progress.toFixed(0)}%
                         </span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link
+                        href={`/employees/${stat.id}`}
+                        className="text-blue-600 hover:text-blue-900 flex items-center justify-center"
+                      >
+                        <span>View Details</span>
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
                     </td>
                   </tr>
                 );

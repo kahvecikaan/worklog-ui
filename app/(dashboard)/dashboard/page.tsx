@@ -120,7 +120,7 @@ export default function DashboardPage() {
         >
           This Month
         </Button>
-        <div className="flex gap-2 ml-auto">
+        <div className="flex gap-2 ml-auto text-gray-900">
           <input
             type="date"
             value={startDate}
