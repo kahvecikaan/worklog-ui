@@ -110,23 +110,17 @@ export interface DashboardResponse {
 }
 
 export interface Employee {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  role: Role;
-  department: {
     id: number;
-    name: string;
-  };
-  teamLead?: {
-    id: number;
-    name: string;
-  };
-  grade: {
-    code: string;
-    title: string;
-  };
-  isActive: boolean;
-}
+    employeeCode: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    email: string;
+    grade: string;
+    role: string;
+    teamLeadId: number | null;
+    teamLeadName: string | null;
+    departmentId: number;
+    departmentName: string;
+    isActive: boolean;
+  }

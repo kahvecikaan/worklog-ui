@@ -94,23 +94,13 @@ export default function EmployeeDetailPage() {
     // Users can always view their own data
     if (user.id === emp.id) return true;
 
-    // Get department IDs safely
-    const userDeptId = user.departmentId;
-    const empDeptId = emp.department?.id || (emp as any).departmentId;
-
     // Directors can view anyone in their department
-    if (
-      canViewDepartmentData(user) &&
-      userDeptId &&
-      empDeptId &&
-      userDeptId === empDeptId
-    ) {
+    if (canViewDepartmentData(user) && user.departmentId === emp.departmentId) {
       return true;
     }
 
     // Team leads can view their team members
-    const teamLeadId = emp.teamLead?.id || (emp as any).teamLeadId;
-    if (canViewTeamData(user) && teamLeadId === user.id) {
+    if (canViewTeamData(user) && emp.teamLeadId === user.id) {
       return true;
     }
 
@@ -180,26 +170,6 @@ export default function EmployeeDetailPage() {
     }
   };
 
-  // Helper function to get department name safely
-  const getDepartmentName = (emp: Employee | null): string => {
-    if (!emp) return "Unknown";
-    // Check for nested department object first
-    if (emp.department?.name) return emp.department.name;
-    // Fall back to flat structure (from backend)
-    if ((emp as any).departmentName) return (emp as any).departmentName;
-    return "Unknown Department";
-  };
-
-  // Helper function to get team lead name safely
-  const getTeamLeadName = (emp: Employee | null): string | null => {
-    if (!emp) return null;
-    // Check for nested teamLead object first
-    if (emp.teamLead?.name) return emp.teamLead.name;
-    // Fall back to flat structure
-    if ((emp as any).teamLeadName) return (emp as any).teamLeadName;
-    return null;
-  };
-
   // Calculate statistics
   const totalHours = worklogs.reduce((sum, w) => sum + w.hoursWorked, 0);
   const daysWorked = new Set(worklogs.map((w) => w.workDate)).size;
@@ -254,8 +224,7 @@ export default function EmployeeDetailPage() {
               {employee.fullName}
             </h1>
             <p className="text-gray-600">
-              {getRoleDisplayName(employee.role)} •{" "}
-              {employee.grade?.title || "Employee"}
+              {employee.role} • {employee.grade}
             </p>
           </div>
         </div>
@@ -280,18 +249,18 @@ export default function EmployeeDetailPage() {
             <div>
               <p className="text-sm text-gray-900">Department</p>
               <p className="font-medium text-gray-900">
-                {getDepartmentName(employee)}
+                {employee.departmentName}
               </p>
             </div>
           </div>
 
-          {getTeamLeadName(employee) && (
+          {employee.teamLeadName && (
             <div className="flex items-center space-x-3">
               <User className="h-5 w-5 text-gray-400" />
               <div>
                 <p className="text-sm text-gray-900">Team Lead</p>
                 <p className="font-medium text-gray-900">
-                  {getTeamLeadName(employee)}
+                  {employee.teamLeadName}
                 </p>
               </div>
             </div>
