@@ -26,9 +26,15 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    // Don't redirect to login if we're already on the login page
+    // or if the failed request was a login attempt
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+    const isOnLoginPage = window.location.pathname === '/login';
     if (error.response?.status === 401) {
-      // Redirect to login on unauthorized
-      window.location.href = '/login';
+      // Only redirect if we're not on login page and it wasn't a login request
+      if (!isOnLoginPage && !isLoginRequest) {
+        window.location.href = '/login';
+      }
     } else if (error.response?.status === 403) {
       toast.error('You do not have permission to perform this action');
     } else if (error.response?.status ?? 0 >= 500) {
