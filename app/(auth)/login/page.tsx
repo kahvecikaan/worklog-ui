@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-hot-toast";
@@ -74,11 +75,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        <div className="flex flex-col items-center">
+          <Image
+            src="/images/kron_logo.png"
+            alt="Kron Tech"
+            width={250}
+            height={50}
+            priority
+            className="mb-3"
+          />
+        </div>
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Krontech Worklog System
+            KronTech Worklog System
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to your account
