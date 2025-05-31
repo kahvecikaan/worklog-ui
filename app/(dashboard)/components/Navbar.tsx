@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { Home, FileText, Users, LogOut, Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -74,10 +75,18 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
           <div className="flex">
-            {/* Logo */}
+            {/* Logo and title section */}
             <div className="flex flex-shrink-0 items-center">
+              <Image
+                src="/images/kron_logo.png"
+                alt="Kron Tech"
+                width={60}
+                height={60}
+                className="mr-3"
+                priority
+              />
               <h1 className="text-xl font-bold text-gray-900">
-                Krontech Worklog
+                Worklog Tracking System
               </h1>
             </div>
 
