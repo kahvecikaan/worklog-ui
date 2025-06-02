@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
+import { extractErrorMessage } from './error-handler';
 import { 
   User, 
   LoginRequest, 
@@ -30,16 +31,21 @@ api.interceptors.response.use(
     // or if the failed request was a login attempt
     const isLoginRequest = error.config?.url?.includes('/auth/login');
     const isOnLoginPage = window.location.pathname === '/login';
+    
     if (error.response?.status === 401) {
       // Only redirect if we're not on login page and it wasn't a login request
       if (!isOnLoginPage && !isLoginRequest) {
         window.location.href = '/login';
       }
     } else if (error.response?.status === 403) {
-      toast.error('You do not have permission to perform this action');
-    } else if (error.response?.status ?? 0 >= 500) {
+      // Don't toast here - let the component handle it for better context
+      console.error('Access denied:', extractErrorMessage(error));
+    } else if (error.response?.status && error.response.status >= 500) {
+      // Only toast generic server errors here
       toast.error('Server error. Please try again later.');
     }
+    
+    // Always preserve the original error for component-level handling
     return Promise.reject(error);
   }
 );
