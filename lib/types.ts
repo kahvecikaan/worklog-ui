@@ -80,6 +80,7 @@ export interface DashboardResponse {
     description: string;
     projectName: string;
   }>;
+  // Team Lead specific fields
   teamMembers?: Array<{
     id: number;
     name: string;
@@ -94,33 +95,46 @@ export interface DashboardResponse {
     averageHoursPerMember: number;
     teamUtilizationRate: number;
   };
+  // Director specific fields
   teamLeads?: Array<{
     id: number;
     name: string;
     teamSize: number;
     teamTotalHours: number;
     teamUtilizationRate: number;
+    teamMembersWithLogs: number; // NEW - shows how many team members logged work
   }>;
   departmentStats?: {
     totalEmployees: number;
     totalTeamLeads: number;
     departmentTotalHours: number;
     departmentUtilizationRate: number;
+    employeesWithLogs: number; // NEW - shows how many employees logged work
+    logComplianceRate: number; // NEW - percentage of employees who logged work
+  };
+  teamPerformanceInsights?: { // NEW - Director insights
+    bestPerformingTeamId: number;
+    bestPerformingTeamName: string;
+    bestPerformingTeamUtilization: number;
+    worstPerformingTeamId: number;
+    worstPerformingTeamName: string;
+    worstPerformingTeamUtilization: number;
+    utilizationGap: number; // Difference between best and worst
   };
 }
 
 export interface Employee {
-    id: number;
-    employeeCode: string;
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    email: string;
-    grade: string;
-    role: string;
-    teamLeadId: number | null;
-    teamLeadName: string | null;
-    departmentId: number;
-    departmentName: string;
-    isActive: boolean;
-  }
+  id: number;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  grade: string;
+  role: string;
+  teamLeadId: number | null;
+  teamLeadName: string | null;
+  departmentId: number;
+  departmentName: string;
+  isActive: boolean;
+}
