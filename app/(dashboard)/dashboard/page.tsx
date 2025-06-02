@@ -8,7 +8,7 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
-import { Calendar, Clock, Users, TrendingUp } from "lucide-react";
+import { Calendar, Clock, Users, TrendingUp, AlertCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { DashboardStats } from "../components/DashboardStats";
@@ -85,8 +85,11 @@ export default function DashboardPage() {
     currentUser,
     periodSummary,
     worklogTypeBreakdown,
+    teamMembers,
+    teamStats,
     teamLeads,
     departmentStats,
+    teamPerformanceInsights,
   } = dashboard;
 
   return (
@@ -221,6 +224,224 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {/* Team Lead View - Team Members Table */}
+      {teamMembers && teamMembers.length > 0 && (
+        <>
+          {/* Team Statistics Cards */}
+          {teamStats && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Team Size
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {teamStats.teamSize}
+                    </p>
+                  </div>
+                  <Users className="h-8 w-8 text-blue-500" />
+                </div>
+              </Card>
+
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Team Total Hours
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {teamStats.totalTeamHours}
+                    </p>
+                  </div>
+                  <Clock className="h-8 w-8 text-green-500" />
+                </div>
+              </Card>
+
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Avg Hours/Member
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {teamStats.averageHoursPerMember.toFixed(1)}
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-purple-500" />
+                </div>
+              </Card>
+
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Team Utilization
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {teamStats.teamUtilizationRate.toFixed(1)}%
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-orange-500" />
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Team Members Table */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>My Team Members</CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                      Team Member
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                      Grade
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                      Total Hours
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                      Days Worked
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                      Utilization
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {teamMembers.map((member) => {
+                    const hasLoggedWork = member.totalHours > 0;
+                    const utilizationColor =
+                      member.utilizationRate >= 80
+                        ? "text-green-600"
+                        : member.utilizationRate >= 60
+                        ? "text-blue-600"
+                        : member.utilizationRate >= 40
+                        ? "text-yellow-600"
+                        : "text-red-600";
+
+                    return (
+                      <tr key={member.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {member.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {member.grade}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {member.totalHours} hours
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {member.daysWorked} days
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center">
+                            <span className={utilizationColor}>
+                              {member.utilizationRate.toFixed(1)}%
+                            </span>
+                            <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${
+                                  member.utilizationRate >= 80
+                                    ? "bg-green-600"
+                                    : member.utilizationRate >= 60
+                                    ? "bg-blue-600"
+                                    : member.utilizationRate >= 40
+                                    ? "bg-yellow-600"
+                                    : "bg-red-600"
+                                }`}
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    member.utilizationRate
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {hasLoggedWork ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              No logs
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {/* Director View - Team Performance Insights */}
+      {teamPerformanceInsights && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {/* Best Performing Team */}
+          <Card className="border-green-200 bg-green-50">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  Best Performing Team
+                </p>
+                <p className="text-xl font-bold text-green-900 mt-1">
+                  {teamPerformanceInsights.bestPerformingTeamName}
+                </p>
+                <p className="text-2xl font-bold text-green-700 mt-2">
+                  {teamPerformanceInsights.bestPerformingTeamUtilization.toFixed(
+                    1
+                  )}
+                  %
+                </p>
+                <p className="text-sm text-green-600 mt-1">Utilization Rate</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-600" />
+            </div>
+          </Card>
+
+          {/* Worst Performing Team */}
+          <Card className="border-red-200 bg-red-50">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-800">
+                  Needs Attention
+                </p>
+                <p className="text-xl font-bold text-red-900 mt-1">
+                  {teamPerformanceInsights.worstPerformingTeamName}
+                </p>
+                <p className="text-2xl font-bold text-red-700 mt-2">
+                  {teamPerformanceInsights.worstPerformingTeamUtilization.toFixed(
+                    1
+                  )}
+                  %
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  Gap: {teamPerformanceInsights.utilizationGap.toFixed(1)}%
+                </p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Director View - Team Leads Summary */}
       {teamLeads && teamLeads.length > 0 && (
         <Card className="mb-8">
@@ -238,6 +459,9 @@ export default function DashboardPage() {
                     Team Size
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Active Members
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Total Hours
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -246,37 +470,69 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {teamLeads.map((lead) => (
-                  <tr key={lead.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {lead.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {lead.teamSize} members
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {lead.teamTotalHours} hours
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <div className="mr-2">
-                          {lead.teamUtilizationRate.toFixed(1)}%
+                {teamLeads.map((lead) => {
+                  const complianceRate =
+                    lead.teamSize > 0
+                      ? (
+                          (lead.teamMembersWithLogs / lead.teamSize) *
+                          100
+                        ).toFixed(0)
+                      : "0";
+                  const complianceColor =
+                    Number(complianceRate) >= 80
+                      ? "text-green-600"
+                      : Number(complianceRate) >= 60
+                      ? "text-yellow-600"
+                      : "text-red-600";
+
+                  return (
+                    <tr key={lead.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {lead.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {lead.teamSize} members
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={complianceColor}>
+                          {lead.teamMembersWithLogs}/{lead.teamSize}
+                        </span>
+                        <span className="text-gray-500 ml-1">
+                          ({complianceRate}%)
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {lead.teamTotalHours} hours
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex items-center">
+                          <div className="mr-2">
+                            {lead.teamUtilizationRate.toFixed(1)}%
+                          </div>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${
+                                lead.teamUtilizationRate >= 80
+                                  ? "bg-green-600"
+                                  : lead.teamUtilizationRate >= 60
+                                  ? "bg-blue-600"
+                                  : lead.teamUtilizationRate >= 40
+                                  ? "bg-yellow-600"
+                                  : "bg-red-600"
+                              }`}
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  lead.teamUtilizationRate
+                                )}%`,
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-green-600 h-2 rounded-full"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                lead.teamUtilizationRate
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -303,12 +559,25 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Team Leads</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Log Compliance
+                  </p>
+                  {departmentStats.logComplianceRate < 80 && (
+                    <AlertCircle className="h-5 w-5 text-red-500 relative" />
+                  )}
+                </div>
                 <p className="text-2xl font-bold text-gray-900">
-                  {departmentStats.totalTeamLeads}
+                  {departmentStats.logComplianceRate?.toFixed(1) || 0}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {departmentStats.employeesWithLogs}/
+                  {departmentStats.totalEmployees} logged
                 </p>
               </div>
-              <Users className="h-8 w-8 text-green-500" />
+              <div className="relative">
+                <Clock className="h-8 w-8 text-green-500" />
+              </div>
             </div>
           </Card>
 

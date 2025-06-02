@@ -1,3 +1,4 @@
+// app/worklogs/components/WorklogForm.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,6 +14,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { worklogApi, worklogTypeApi } from "@/lib/api";
 import { WorklogCreateRequest, WorklogType } from "@/lib/types";
+import { extractErrorMessage, isValidationError } from "@/lib/error-handler";
+import { AlertCircle } from "lucide-react";
 
 const worklogSchema = z.object({
   worklogTypeId: z.string().min(1, "Please select a work type"),
@@ -23,24 +26,24 @@ const worklogSchema = z.object({
     .refine(
       (val) => !isNaN(Number(val)) && Number(val) > 0 && Number(val) <= 8,
       {
-        message: "Hours must be between 0 and 8",
+        message: "Hours must be between 1 and 8",
       }
     ),
   projectName: z.string().optional(),
   description: z.string().min(10, "Description must be at least 10 characters"),
 });
 
-// automatically create Typescript type from the Zod schema
 type WorklogFormData = z.infer<typeof worklogSchema>;
 
 interface WorklogFormProps {
-  worklog?: any; // For edit mode
+  worklog?: any;
 }
 
 export function WorklogForm({ worklog }: WorklogFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [worklogTypes, setWorklogTypes] = useState<WorklogType[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const {
     register,
@@ -73,6 +76,8 @@ export function WorklogForm({ worklog }: WorklogFormProps) {
 
   const onSubmit: SubmitHandler<WorklogFormData> = async (data) => {
     setIsLoading(true);
+    setApiError(null); // Clear previous errors
+
     try {
       const payload: WorklogCreateRequest = {
         worklogTypeId: Number(data.worklogTypeId),
@@ -94,7 +99,20 @@ export function WorklogForm({ worklog }: WorklogFormProps) {
       router.refresh();
     } catch (error: any) {
       console.error("Failed to save worklog:", error);
-      toast.error(error.response?.data?.message || "Failed to save worklog");
+
+      const errorMessage = extractErrorMessage(error);
+      setApiError(errorMessage);
+
+      // Check if it's a validation error to provide more specific handling
+      if (isValidationError(error)) {
+        // For validation errors, the message is usually descriptive enough
+        toast.error(errorMessage, {
+          duration: errorMessage.length > 100 ? 6000 : 4000,
+        });
+      } else {
+        // For other errors, keep it brief
+        toast.error("Failed to save worklog. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,6 +126,19 @@ export function WorklogForm({ worklog }: WorklogFormProps) {
   return (
     <Card>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Display API error prominently if it exists */}
+        {apiError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                Error creating worklog
+              </h3>
+              <p className="text-sm text-red-700 mt-1">{apiError}</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Select
             label="Work Type"
@@ -128,8 +159,8 @@ export function WorklogForm({ worklog }: WorklogFormProps) {
             label="Hours Worked"
             type="number"
             step="0.5"
-            min="0"
-            max="24"
+            min="0.5"
+            max="8"
             {...register("hoursWorked")}
             error={errors.hoursWorked?.message}
             placeholder="e.g., 8"
