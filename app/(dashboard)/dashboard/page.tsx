@@ -21,12 +21,12 @@ type PeriodFilter = "week" | "month" | "custom";
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("month");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
   const [startDate, setStartDate] = useState(
-    format(startOfMonth(new Date()), "yyyy-MM-dd")
+    format(startOfWeek(new Date()), "yyyy-MM-dd")
   );
   const [endDate, setEndDate] = useState(
-    format(endOfMonth(new Date()), "yyyy-MM-dd")
+    format(endOfWeek(new Date()), "yyyy-MM-dd")
   );
 
   useEffect(() => {
@@ -452,19 +452,19 @@ export default function DashboardPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                     Team Lead
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                     Team Size
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                     Active Members
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                     Total Hours
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
                     Utilization
                   </th>
                 </tr>
@@ -490,21 +490,21 @@ export default function DashboardPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {lead.name}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {lead.teamSize} members
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={complianceColor}>
                           {lead.teamMembersWithLogs}/{lead.teamSize}
                         </span>
-                        <span className="text-gray-500 ml-1">
+                        <span className="text-gray-900 ml-1">
                           ({complianceRate}%)
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {lead.teamTotalHours} hours
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center">
                           <div className="mr-2">
                             {lead.teamUtilizationRate.toFixed(1)}%
@@ -559,25 +559,20 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Log Compliance
-                  </p>
-                  {departmentStats.logComplianceRate < 80 && (
-                    <AlertCircle className="h-5 w-5 text-red-500 relative" />
-                  )}
-                </div>
+                <p className="text-sm font-medium text-gray-600">
+                  Log Compliance
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
                   {departmentStats.logComplianceRate?.toFixed(1) || 0}%
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {departmentStats.employeesWithLogs}/
-                  {departmentStats.totalEmployees} logged
+                  <span className="text-xs text-gray-600 font-normal ml-2">
+                    ({departmentStats.employeesWithLogs}/
+                    {departmentStats.totalEmployees} logged)
+                  </span>
                 </p>
               </div>
-              <div className="relative">
-                <Clock className="h-8 w-8 text-green-500" />
-              </div>
+              {departmentStats.logComplianceRate < 80 && (
+                <AlertCircle className="h-8 w-8 text-red-500 relative" />
+              )}
             </div>
           </Card>
 
