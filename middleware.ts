@@ -13,6 +13,11 @@ export function middleware(request: NextRequest) {
   // Get the session cookie
   const sessionCookie = request.cookies.get('JSESSIONID');
 
+  // For API routes, let them through (they'll handle their own auth)
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
   // If no session and trying to access protected route, redirect to login
   if (!sessionCookie && !isPublicPath) {
     const loginUrl = new URL('/login', request.url);
@@ -20,14 +25,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If has session and trying to access login, redirect to dashboard
-  if (sessionCookie && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
   // Redirect root to dashboard if authenticated, otherwise to login
   if (pathname === '/') {
     if (sessionCookie) {
+      // dashboard will check the backend to see if the cookie is valid (if not, will invalidate it in interceptor)
       return NextResponse.redirect(new URL('/dashboard', request.url));
     } else {
       return NextResponse.redirect(new URL('/login', request.url));
