@@ -23,6 +23,7 @@ const api = axios.create({
   },
 });
 
+let isRedirecting = false;
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
@@ -34,8 +35,15 @@ api.interceptors.response.use(
     
     if (error.response?.status === 401) {
       // Only redirect if we're not on login page and it wasn't a login request
-      if (!isOnLoginPage && !isLoginRequest) {
+      if (!isOnLoginPage && !isLoginRequest && !isRedirecting) {
+        isRedirecting = true;
+        // Clear the invalid cookie before redirecting
+        document.cookie = 'JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
         window.location.href = '/login';
+        
+        // Prevent further processing
+        return new Promise(() => {}); // Never resolves, stops the chain
       }
     } else if (error.response?.status === 403) {
       // Don't toast here - let the component handle it for better context
