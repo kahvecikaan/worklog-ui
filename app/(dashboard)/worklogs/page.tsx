@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { worklogApi } from "@/lib/api";
 import { Worklog } from "@/lib/types";
 import { toast } from "react-hot-toast";
+import { extractErrorMessage } from "@/lib/error-handler";
 
 export default function WorklogsPage() {
   const router = useRouter();
@@ -32,7 +33,8 @@ export default function WorklogsPage() {
       setWorklogs(data);
     } catch (error) {
       console.error("Failed to load worklogs:", error);
-      toast.error("Failed to load worklogs");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +49,8 @@ export default function WorklogsPage() {
       loadWorklogs();
     } catch (error) {
       console.error("Failed to delete worklog:", error);
-      toast.error("Failed to delete worklog");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     }
   };
 

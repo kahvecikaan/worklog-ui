@@ -33,6 +33,7 @@ import {
   getRoleDisplayName,
 } from "@/lib/auth";
 import Link from "next/link";
+import { extractErrorMessage } from "@/lib/error-handler";
 
 type PeriodFilter = "week" | "month" | "custom";
 
@@ -83,7 +84,8 @@ export default function EmployeeDetailPage() {
       }
     } catch (error) {
       console.error("Failed to load employee data:", error);
-      toast.error("Failed to load employee details");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
       router.push("/dashboard");
     } finally {
       setIsLoading(false);
@@ -132,7 +134,8 @@ export default function EmployeeDetailPage() {
       setWorklogs(data);
     } catch (error) {
       console.error("Failed to load worklogs:", error);
-      toast.error("Failed to load worklogs");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     }
   };
 

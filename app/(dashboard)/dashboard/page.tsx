@@ -15,6 +15,7 @@ import { DashboardStats } from "../components/DashboardStats";
 import { dashboardApi } from "@/lib/api";
 import { DashboardResponse } from "@/lib/types";
 import { toast } from "react-hot-toast";
+import { extractErrorMessage } from "@/lib/error-handler";
 
 type PeriodFilter = "week" | "month" | "custom";
 
@@ -40,7 +41,8 @@ export default function DashboardPage() {
       setDashboard(data);
     } catch (error) {
       console.error("Failed to load dashboard:", error);
-      toast.error("Failed to load dashboard data");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

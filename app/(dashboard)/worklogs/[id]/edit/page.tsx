@@ -7,6 +7,7 @@ import { WorklogForm } from "../../../components/WorklogForm";
 import { Worklog } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { Card } from "@/components/ui/Card";
+import { extractErrorMessage } from "@/lib/error-handler";
 
 export default function EditWorklogPage() {
   const params = useParams();
@@ -23,7 +24,8 @@ export default function EditWorklogPage() {
       setWorklog(wl);
     } catch (error) {
       console.error("Failed to load worklog:", error);
-      toast.error("Failed to load worklog");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

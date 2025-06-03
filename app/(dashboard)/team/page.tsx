@@ -17,6 +17,7 @@ import { Employee, Worklog, User } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { canViewDepartmentData } from "@/lib/auth";
 import Link from "next/link";
+import { extractErrorMessage } from "@/lib/error-handler";
 
 type PeriodFilter = "week" | "month" | "custom";
 
@@ -54,7 +55,8 @@ export default function TeamPage() {
       setEmployees(visibleEmployees);
     } catch (error) {
       console.error("Failed to load data:", error);
-      toast.error("Failed to load team data");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +88,8 @@ export default function TeamPage() {
       setWorklogs(data);
     } catch (error) {
       console.error("Failed to load worklogs:", error);
-      toast.error("Failed to load worklogs");
+      const errorMessage = extractErrorMessage(error);
+      toast.error(errorMessage);
     }
   };
 
@@ -301,7 +304,7 @@ export default function TeamPage() {
                 const progress = (stat.totalHours / expectedHours) * 100;
 
                 return (
-                  <tr key={stat.id} className="hover:bg-gray-50">
+                  <tr key={stat.id} className="hover:bg-blue-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link
                         href={`/employees/${stat.id}`}
