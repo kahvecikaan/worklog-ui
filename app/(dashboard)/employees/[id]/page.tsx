@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { format, parseISO, isValid } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
   Calendar,
@@ -22,11 +22,7 @@ import {
   DashboardResponse,
 } from "@/lib/types";
 import { toast } from "react-hot-toast";
-import {
-  canViewDepartmentData,
-  canViewTeamData,
-  getRoleDisplayName,
-} from "@/lib/auth";
+import { canViewDepartmentData, canViewTeamData } from "@/lib/auth";
 
 import { extractErrorMessage } from "@/lib/error-handler";
 import {
@@ -36,6 +32,7 @@ import {
   getUtilizationColor,
   getProgressBarColor,
   getDateRangeForPeriod,
+  isValidDateString,
 } from "@/lib/date-utils";
 
 type PeriodFilter = "week" | "month" | "custom";
@@ -45,13 +42,6 @@ export default function EmployeeDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const employeeId = Number(params.id);
-
-  // Helper function to validate date strings
-  const isValidDateString = (dateStr: string | null): boolean => {
-    if (!dateStr) return false;
-    const date = parseISO(dateStr);
-    return isValid(date);
-  };
 
   // Initialize date state from URL params or use defaults
   const getInitialDates = () => {
@@ -105,6 +95,19 @@ export default function EmployeeDetailPage() {
       loadDashboard();
     }
   }, [startDate, endDate, currentUser, employee]);
+
+  useEffect(() => {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      period: periodFilter,
+    });
+    const qs = `?${params.toString()}`;
+
+    if (window.location.search !== qs) {
+      router.replace(`/employees/${employeeId}?${qs}`, { scroll: false });
+    }
+  }, [startDate, endDate, periodFilter, employeeId, router]);
 
   const loadInitialData = async () => {
     try {
@@ -212,13 +215,13 @@ export default function EmployeeDetailPage() {
     const referrer = document.referrer;
     const isFromTeamPage = referrer.includes("/team");
 
-    if (isFromTeamPage && searchParams.get("startDate")) {
-      // Navigate back to team page with the same date parameters
+    if (isFromTeamPage) {
+      // Navigate back to team page with the updated date parameters
       router.push(
         `/team?startDate=${startDate}&endDate=${endDate}&period=${periodFilter}`
       );
     } else {
-      // Standard back navigation
+      // Standard back navigation (this would use the previous date parameters if we're coming from /team)
       router.back();
     }
   };

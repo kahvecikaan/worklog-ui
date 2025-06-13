@@ -6,7 +6,8 @@ import {
     endOfWeek,
     startOfMonth,
     endOfMonth,
-    format
+    format,
+    isValid
   } from 'date-fns';
   
   export const HOURS_PER_DAY = 8;
@@ -82,4 +83,10 @@ import {
       default:
         throw new Error(`Invalid period: ${period}`);
     }
+  }
+
+  export function isValidDateString(dateStr: string | null) : boolean {
+    if(!dateStr) return false;
+    const date = parseISO(dateStr);
+    return isValid(date);
   }

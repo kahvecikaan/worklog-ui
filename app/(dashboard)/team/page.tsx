@@ -17,6 +17,7 @@ import { Employee, Worklog, User } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { canViewDepartmentData } from "@/lib/auth";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { extractErrorMessage } from "@/lib/error-handler";
 import {
   calculateWorkingDays,
@@ -25,23 +26,52 @@ import {
   getUtilizationColor,
   getProgressBarColor,
   getDateRangeForPeriod,
+  isValidDateString,
 } from "@/lib/date-utils";
 
 type PeriodFilter = "week" | "month" | "custom";
 
 export default function TeamPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [worklogs, setWorklogs] = useState<Worklog[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
 
-  // Initialize with current week dates
-  const { startDate: initialStart, endDate: initialEnd } =
-    getDateRangeForPeriod("week");
-  const [startDate, setStartDate] = useState(initialStart);
-  const [endDate, setEndDate] = useState(initialEnd);
+  // Initialize date state from URL params or use defaults
+  const getInitialDates = () => {
+    const urlStartDate = searchParams.get("startDate");
+    const urlEndDate = searchParams.get("endDate");
+    const urlPeriod = searchParams.get("period") as PeriodFilter | null;
+
+    // If we have valid dates from URL, use them
+    if (
+      urlStartDate &&
+      urlEndDate &&
+      isValidDateString(urlStartDate) &&
+      isValidDateString(urlEndDate)
+    ) {
+      return {
+        startDate: urlStartDate,
+        endDate: urlEndDate,
+        periodFilter: urlPeriod || "custom",
+      };
+    }
+
+    // Otherwise, default to current week
+    const { startDate, endDate } = getDateRangeForPeriod("week");
+    return { startDate, endDate, periodFilter: "week" };
+  };
+
+  const initialDates = getInitialDates();
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>(
+    initialDates.periodFilter as PeriodFilter
+  );
+  const [startDate, setStartDate] = useState(initialDates.startDate);
+  const [endDate, setEndDate] = useState(initialDates.endDate);
 
   // Calculate working days and expected hours for the current period
   const workingDaysInPeriod = calculateWorkingDays(startDate, endDate);
@@ -50,6 +80,19 @@ export default function TeamPage() {
   const isDepartmentView = user && canViewDepartmentData(user);
   const viewLabel = isDepartmentView ? "Department" : "Team";
   const memberLabel = isDepartmentView ? "Employees" : "Team Members";
+
+  useEffect(() => {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      period: periodFilter,
+    });
+    const qs = `?${params.toString()}`;
+
+    if (window.location.search !== qs) {
+      router.replace(`/team${qs}`, { scroll: false });
+    }
+  }, [startDate, endDate, periodFilter, router]);
 
   useEffect(() => {
     loadInitialData();
