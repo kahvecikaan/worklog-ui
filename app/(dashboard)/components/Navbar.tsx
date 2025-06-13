@@ -5,11 +5,24 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
-import { Home, FileText, Users, LogOut, Menu, X, User } from "lucide-react";
+import {
+  Home,
+  FileText,
+  Users,
+  LogOut,
+  Menu,
+  X,
+  Building,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { authApi } from "@/lib/api";
 import { User as UserType } from "@/lib/types";
-import { getRoleDisplayName, canViewTeamData } from "@/lib/auth";
+import {
+  getRoleDisplayName,
+  canViewTeamData,
+  canViewDepartmentData,
+} from "@/lib/auth";
 
 export function Navbar() {
   const router = useRouter();
@@ -49,9 +62,13 @@ export function Navbar() {
     { name: "My Worklogs", href: "/worklogs", icon: FileText },
   ];
 
-  // Add team navigation for Team Leads and Directors
+  // Add appropriate navigation based on role
   if (user && canViewTeamData(user)) {
-    navigation.push({ name: "Team", href: "/team", icon: Users });
+    navigation.push({
+      name: canViewDepartmentData(user) ? "Department" : "Team",
+      href: "/team",
+      icon: canViewDepartmentData(user) ? Building : User,
+    });
   }
 
   const isActive = (href: string) => pathname === href;

@@ -1,4 +1,4 @@
-import { User, Role } from './types';
+import { User, MinimalUser, Role } from './types';
 import { authApi } from './api';
 
 export async function getServerUser(): Promise<User | null> {
@@ -10,16 +10,16 @@ export async function getServerUser(): Promise<User | null> {
   }
 }
 
-export function hasRole(user: User | null, roles: Role[]): boolean {
+export function hasRole(user: User | MinimalUser | null, roles: Role[]): boolean {
   if (!user) return false;
   return roles.includes(user.role);
 }
 
-export function canViewTeamData(user: User | null): boolean {
+export function canViewTeamData(user: User | MinimalUser | null): boolean {
   return hasRole(user, ['TEAM_LEAD', 'DIRECTOR']);
 }
 
-export function canViewDepartmentData(user: User | null): boolean {
+export function canViewDepartmentData(user: User | MinimalUser | null): boolean {
   return hasRole(user, ['DIRECTOR']);
 }
 

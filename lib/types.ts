@@ -1,5 +1,12 @@
 export type Role = 'EMPLOYEE' | 'TEAM_LEAD' | 'DIRECTOR';
 
+export interface MinimalUser {
+  id: number;
+  name: string;
+  role: Role;
+  department: string;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -55,12 +62,7 @@ export interface DashboardStats {
 }
 
 export interface DashboardResponse {
-  currentUser: {
-    id: number;
-    name: string;
-    role: string;
-    department: string;
-  };
+  currentUser: MinimalUser;
   periodSummary: {
     totalHours: number;
     totalDays: number;
@@ -102,24 +104,24 @@ export interface DashboardResponse {
     teamSize: number;
     teamTotalHours: number;
     teamUtilizationRate: number;
-    teamMembersWithLogs: number; // NEW - shows how many team members logged work
+    teamMembersWithLogs: number;
   }>;
   departmentStats?: {
     totalEmployees: number;
     totalTeamLeads: number;
     departmentTotalHours: number;
     departmentUtilizationRate: number;
-    employeesWithLogs: number; // NEW - shows how many employees logged work
-    logComplianceRate: number; // NEW - percentage of employees who logged work
+    employeesWithLogs: number;
+    logComplianceRate: number;
   };
-  teamPerformanceInsights?: { // NEW - Director insights
+  teamPerformanceInsights?: {
     bestPerformingTeamId: number;
     bestPerformingTeamName: string;
     bestPerformingTeamUtilization: number;
     worstPerformingTeamId: number;
     worstPerformingTeamName: string;
     worstPerformingTeamUtilization: number;
-    utilizationGap: number; // Difference between best and worst
+    utilizationGap: number;
   };
 }
 

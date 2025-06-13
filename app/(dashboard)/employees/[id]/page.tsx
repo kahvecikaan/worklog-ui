@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { format, parseISO, isValid } from "date-fns";
 import {
   ArrowLeft,
   Calendar,
@@ -16,6 +10,7 @@ import {
   Briefcase,
   Mail,
   User,
+  Info,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -32,28 +27,73 @@ import {
   canViewTeamData,
   getRoleDisplayName,
 } from "@/lib/auth";
-import Link from "next/link";
+
 import { extractErrorMessage } from "@/lib/error-handler";
+import {
+  calculateWorkingDays,
+  calculateExpectedHours,
+  calculateUtilizationRate,
+  getUtilizationColor,
+  getProgressBarColor,
+  getDateRangeForPeriod,
+} from "@/lib/date-utils";
 
 type PeriodFilter = "week" | "month" | "custom";
 
 export default function EmployeeDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const employeeId = Number(params.id);
+
+  // Helper function to validate date strings
+  const isValidDateString = (dateStr: string | null): boolean => {
+    if (!dateStr) return false;
+    const date = parseISO(dateStr);
+    return isValid(date);
+  };
+
+  // Initialize date state from URL params or use defaults
+  const getInitialDates = () => {
+    const urlStartDate = searchParams.get("startDate");
+    const urlEndDate = searchParams.get("endDate");
+    const urlPeriod = searchParams.get("period") as PeriodFilter | null;
+
+    // If we have valid dates from URL, use them
+    if (
+      urlStartDate &&
+      urlEndDate &&
+      isValidDateString(urlStartDate) &&
+      isValidDateString(urlEndDate)
+    ) {
+      return {
+        startDate: urlStartDate,
+        endDate: urlEndDate,
+        periodFilter: urlPeriod || "custom",
+      };
+    }
+
+    // Otherwise, default to current week
+    const { startDate, endDate } = getDateRangeForPeriod("week");
+    return { startDate, endDate, periodFilter: "week" };
+  };
+
+  const initialDates = getInitialDates();
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>(
+    initialDates.periodFilter as PeriodFilter
+  );
+  const [startDate, setStartDate] = useState(initialDates.startDate);
+  const [endDate, setEndDate] = useState(initialDates.endDate);
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [worklogs, setWorklogs] = useState<Worklog[]>([]);
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
-  const [startDate, setStartDate] = useState(
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")
-  );
-  const [endDate, setEndDate] = useState(
-    format(endOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")
-  );
+
+  // Calculate working days and expected hours for the current period
+  const workingDaysInPeriod = calculateWorkingDays(startDate, endDate);
+  const expectedHoursInPeriod = calculateExpectedHours(startDate, endDate);
 
   useEffect(() => {
     loadInitialData();
@@ -157,19 +197,29 @@ export default function EmployeeDetailPage() {
 
   const handlePeriodChange = (period: PeriodFilter) => {
     setPeriodFilter(period);
-    const today = new Date();
 
-    switch (period) {
-      case "week":
-        setStartDate(
-          format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd")
-        );
-        setEndDate(format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"));
-        break;
-      case "month":
-        setStartDate(format(startOfMonth(today), "yyyy-MM-dd"));
-        setEndDate(format(endOfMonth(today), "yyyy-MM-dd"));
-        break;
+    if (period !== "custom") {
+      const { startDate: newStart, endDate: newEnd } =
+        getDateRangeForPeriod(period);
+      setStartDate(newStart);
+      setEndDate(newEnd);
+    }
+  };
+
+  // Enhanced back navigation that preserves date context
+  const handleBackNavigation = () => {
+    // Check if we came from a specific page with date context
+    const referrer = document.referrer;
+    const isFromTeamPage = referrer.includes("/team");
+
+    if (isFromTeamPage && searchParams.get("startDate")) {
+      // Navigate back to team page with the same date parameters
+      router.push(
+        `/team?startDate=${startDate}&endDate=${endDate}&period=${periodFilter}`
+      );
+    } else {
+      // Standard back navigation
+      router.back();
     }
   };
 
@@ -177,6 +227,10 @@ export default function EmployeeDetailPage() {
   const totalHours = worklogs.reduce((sum, w) => sum + w.hoursWorked, 0);
   const daysWorked = new Set(worklogs.map((w) => w.workDate)).size;
   const averageHours = daysWorked > 0 ? totalHours / daysWorked : 0;
+  const utilizationRate = calculateUtilizationRate(
+    totalHours,
+    expectedHoursInPeriod
+  );
 
   // Group worklogs by type for breakdown
   const worklogsByType = worklogs.reduce((acc, worklog) => {
@@ -214,7 +268,7 @@ export default function EmployeeDetailPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.back()}
+          onClick={handleBackNavigation}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -313,13 +367,33 @@ export default function EmployeeDetailPage() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {/* Period Info Banner */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p className="font-medium">Performance Period</p>
+            <p className="mt-1">
+              Analyzing <strong>{workingDaysInPeriod} working days</strong> (
+              {format(parseISO(startDate), "MMM d")} -{" "}
+              {format(parseISO(endDate), "MMM d, yyyy")}), with{" "}
+              <strong>{expectedHoursInPeriod} expected hours</strong> at full
+              utilization.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics Cards - Enhanced with utilization */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600">Total Hours</p>
               <p className="text-2xl font-bold text-blue-900">{totalHours}</p>
+              <p className="text-xs text-blue-700 mt-1">
+                of {expectedHoursInPeriod} expected
+              </p>
             </div>
             <Clock className="h-8 w-8 text-blue-500" />
           </div>
@@ -330,6 +404,9 @@ export default function EmployeeDetailPage() {
             <div>
               <p className="text-sm font-medium text-green-600">Days Worked</p>
               <p className="text-2xl font-bold text-green-900">{daysWorked}</p>
+              <p className="text-xs text-green-700 mt-1">
+                of {workingDaysInPeriod} working days
+              </p>
             </div>
             <Calendar className="h-8 w-8 text-green-500" />
           </div>
@@ -344,8 +421,33 @@ export default function EmployeeDetailPage() {
               <p className="text-2xl font-bold text-purple-900">
                 {averageHours.toFixed(1)}
               </p>
+              <p className="text-xs text-purple-700 mt-1">Target: 8.0 hours</p>
             </div>
             <Briefcase className="h-8 w-8 text-purple-500" />
+          </div>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-orange-600">Utilization</p>
+              <p
+                className={`text-2xl font-bold ${getUtilizationColor(
+                  utilizationRate
+                ).replace("text-", "text-")}`}
+              >
+                {utilizationRate.toFixed(1)}%
+              </p>
+              <div className="w-full bg-orange-200 rounded-full h-1.5 mt-2">
+                <div
+                  className={`h-1.5 rounded-full transition-all duration-300 ${getProgressBarColor(
+                    utilizationRate
+                  )}`}
+                  style={{ width: `${Math.min(100, utilizationRate)}%` }}
+                />
+              </div>
+            </div>
+            <Briefcase className="h-8 w-8 text-orange-500" />
           </div>
         </Card>
       </div>
@@ -354,7 +456,7 @@ export default function EmployeeDetailPage() {
       {Object.keys(worklogsByType).length > 0 && (
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Work Type Breakdown</CardTitle>
+            <CardTitle>Work Type Distribution</CardTitle>
           </CardHeader>
           <div className="p-6">
             <div className="space-y-4">
@@ -372,7 +474,7 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full"
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -387,7 +489,7 @@ export default function EmployeeDetailPage() {
       {/* Worklogs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Work Logs</CardTitle>
+          <CardTitle>Detailed Work Logs</CardTitle>
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -424,7 +526,7 @@ export default function EmployeeDetailPage() {
                 worklogs.map((worklog) => (
                   <tr key={worklog.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(worklog.workDate), "MMM dd, yyyy")}
+                      {format(parseISO(worklog.workDate), "MMM dd, yyyy")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {worklog.worklogTypeName}

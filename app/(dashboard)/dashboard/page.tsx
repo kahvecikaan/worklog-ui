@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { format, parseISO } from "date-fns";
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-} from "date-fns";
-import { Calendar, Clock, Users, TrendingUp, AlertCircle } from "lucide-react";
+  Calendar,
+  Clock,
+  Users,
+  TrendingUp,
+  AlertCircle,
+  Info,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { DashboardStats } from "../components/DashboardStats";
@@ -16,6 +17,15 @@ import { dashboardApi } from "@/lib/api";
 import { DashboardResponse } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { extractErrorMessage } from "@/lib/error-handler";
+import { canViewDepartmentData, getRoleDisplayName } from "@/lib/auth";
+import {
+  calculateWorkingDays,
+  calculateExpectedHours,
+  calculateUtilizationRate,
+  getUtilizationColor,
+  getProgressBarColor,
+  getDateRangeForPeriod,
+} from "@/lib/date-utils";
 
 type PeriodFilter = "week" | "month" | "custom";
 
@@ -23,12 +33,16 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
-  const [startDate, setStartDate] = useState(
-    format(startOfWeek(new Date()), "yyyy-MM-dd")
-  );
-  const [endDate, setEndDate] = useState(
-    format(endOfWeek(new Date()), "yyyy-MM-dd")
-  );
+
+  // Initialize with current week dates
+  const { startDate: initialStart, endDate: initialEnd } =
+    getDateRangeForPeriod("week");
+  const [startDate, setStartDate] = useState(initialStart);
+  const [endDate, setEndDate] = useState(initialEnd);
+
+  // Calculate working days and expected hours for the current period
+  const workingDaysInPeriod = calculateWorkingDays(startDate, endDate);
+  const expectedHoursInPeriod = calculateExpectedHours(startDate, endDate);
 
   useEffect(() => {
     loadDashboard();
@@ -50,19 +64,12 @@ export default function DashboardPage() {
 
   const handlePeriodChange = (period: PeriodFilter) => {
     setPeriodFilter(period);
-    const today = new Date();
 
-    switch (period) {
-      case "week":
-        setStartDate(
-          format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd")
-        );
-        setEndDate(format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"));
-        break;
-      case "month":
-        setStartDate(format(startOfMonth(today), "yyyy-MM-dd"));
-        setEndDate(format(endOfMonth(today), "yyyy-MM-dd"));
-        break;
+    if (period !== "custom") {
+      const { startDate: newStart, endDate: newEnd } =
+        getDateRangeForPeriod(period);
+      setStartDate(newStart);
+      setEndDate(newEnd);
     }
   };
 
@@ -94,6 +101,16 @@ export default function DashboardPage() {
     teamPerformanceInsights,
   } = dashboard;
 
+  // Determine if this is department or team view
+  const isDepartmentView = canViewDepartmentData(currentUser);
+  const viewLabel = isDepartmentView ? "Department" : "Team";
+
+  // Calculate personal utilization
+  const personalUtilization = calculateUtilizationRate(
+    periodSummary.totalHours,
+    expectedHoursInPeriod
+  );
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -106,7 +123,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - This component is now role-aware */}
       <DashboardStats />
 
       {/* Period Filter */}
@@ -148,53 +165,106 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Personal Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
+      {/* Period Info Banner */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p className="font-medium">Period Overview</p>
+            <p className="mt-1">
+              Showing data for{" "}
+              <strong>{workingDaysInPeriod} working days</strong> (
+              {format(parseISO(startDate), "MMM d")} -{" "}
+              {format(parseISO(endDate), "MMM d, yyyy")}), expecting{" "}
+              <strong>{expectedHoursInPeriod} hours</strong> at full
+              utilization.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Personal Summary - Enhanced with utilization */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Hours</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-blue-600">Total Hours</p>
+              <p className="text-2xl font-bold text-blue-900">
                 {periodSummary.totalHours}
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                of {expectedHoursInPeriod} expected
               </p>
             </div>
             <Clock className="h-8 w-8 text-blue-500" />
           </div>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Days Worked</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-green-600">Days Worked</p>
+              <p className="text-2xl font-bold text-green-900">
                 {periodSummary.daysWorked}
+              </p>
+              <p className="text-xs text-green-700 mt-1">
+                of {workingDaysInPeriod} working days
               </p>
             </div>
             <Calendar className="h-8 w-8 text-green-500" />
           </div>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Avg Hours/Day</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-purple-600">
+                Avg Hours/Day
+              </p>
+              <p className="text-2xl font-bold text-purple-900">
                 {periodSummary.averageHoursPerDay.toFixed(1)}
               </p>
+              <p className="text-xs text-purple-700 mt-1">Target: 8.0 hours</p>
             </div>
             <TrendingUp className="h-8 w-8 text-purple-500" />
           </div>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Period</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-sm font-medium text-orange-600">Utilization</p>
+              <p className="text-2xl font-bold text-orange-900">
+                {personalUtilization.toFixed(1)}%
+              </p>
+              <div className="w-full bg-orange-200 rounded-full h-1.5 mt-2">
+                <div
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    personalUtilization >= 90
+                      ? "bg-green-600"
+                      : personalUtilization >= 70
+                      ? "bg-blue-600"
+                      : personalUtilization >= 50
+                      ? "bg-yellow-600"
+                      : "bg-red-600"
+                  }`}
+                  style={{ width: `${Math.min(100, personalUtilization)}%` }}
+                />
+              </div>
+            </div>
+            <TrendingUp className="h-8 w-8 text-orange-500" />
+          </div>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-indigo-600">Period</p>
+              <p className="text-lg font-semibold text-indigo-900">
                 {periodSummary.period}
               </p>
             </div>
-            <Calendar className="h-8 w-8 text-orange-500" />
+            <Calendar className="h-8 w-8 text-indigo-500" />
           </div>
         </Card>
       </div>
@@ -209,14 +279,16 @@ export default function DashboardPage() {
             {worklogTypeBreakdown.map((type) => (
               <div key={type.typeName}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-900">{type.typeName}</span>
+                  <span className="text-gray-900 font-medium">
+                    {type.typeName}
+                  </span>
                   <span className="text-gray-600">
                     {type.hours} hours ({type.percentage.toFixed(1)}%)
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full"
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${type.percentage}%` }}
                   />
                 </div>
@@ -229,60 +301,88 @@ export default function DashboardPage() {
       {/* Team Lead View - Team Members Table */}
       {teamMembers && teamMembers.length > 0 && (
         <>
-          {/* Team Statistics Cards */}
+          {/* Team Statistics Cards - Updated labels */}
           {teamStats && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card>
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Team Size
+                    <p className="text-sm font-medium text-blue-600">
+                      {viewLabel} Size
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-blue-900">
                       {teamStats.teamSize}
+                    </p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      {isDepartmentView ? "Total employees" : "Team members"}
                     </p>
                   </div>
                   <Users className="h-8 w-8 text-blue-500" />
                 </div>
               </Card>
 
-              <Card>
+              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Team Total Hours
+                    <p className="text-sm font-medium text-green-600">
+                      {viewLabel} Total Hours
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-green-900">
                       {teamStats.totalTeamHours}
+                    </p>
+                    <p className="text-xs text-green-700 mt-1">
+                      of {expectedHoursInPeriod * teamStats.teamSize} expected
                     </p>
                   </div>
                   <Clock className="h-8 w-8 text-green-500" />
                 </div>
               </Card>
 
-              <Card>
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-purple-600">
                       Avg Hours/Member
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-purple-900">
                       {teamStats.averageHoursPerMember.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-purple-700 mt-1">
+                      of {expectedHoursInPeriod} expected
                     </p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-purple-500" />
                 </div>
               </Card>
 
-              <Card>
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Team Utilization
+                    <p className="text-sm font-medium text-orange-600">
+                      {viewLabel} Utilization
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-orange-900">
                       {teamStats.teamUtilizationRate.toFixed(1)}%
                     </p>
+                    <div className="w-full bg-orange-200 rounded-full h-1.5 mt-2">
+                      <div
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          teamStats.teamUtilizationRate >= 90
+                            ? "bg-green-600"
+                            : teamStats.teamUtilizationRate >= 70
+                            ? "bg-blue-600"
+                            : teamStats.teamUtilizationRate >= 50
+                            ? "bg-yellow-600"
+                            : "bg-red-600"
+                        }`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            teamStats.teamUtilizationRate
+                          )}%`,
+                        }}
+                      />
+                    </div>
                   </div>
                   <TrendingUp className="h-8 w-8 text-orange-500" />
                 </div>
@@ -293,46 +393,40 @@ export default function DashboardPage() {
           {/* Team Members Table */}
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>My Team Members</CardTitle>
+              <CardTitle>
+                {isDepartmentView ? "Department Members" : "My Team Members"}
+              </CardTitle>
             </CardHeader>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead>
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
-                      Team Member
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {isDepartmentView ? "Employee" : "Team Member"}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Grade
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Hours
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Days Worked
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Utilization
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {teamMembers.map((member) => {
                     const hasLoggedWork = member.totalHours > 0;
-                    const utilizationColor =
-                      member.utilizationRate >= 80
-                        ? "text-green-600"
-                        : member.utilizationRate >= 60
-                        ? "text-blue-600"
-                        : member.utilizationRate >= 40
-                        ? "text-yellow-600"
-                        : "text-red-600";
 
                     return (
-                      <tr key={member.id}>
+                      <tr key={member.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {member.name}
                         </td>
@@ -340,34 +434,40 @@ export default function DashboardPage() {
                           {member.grade}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {member.totalHours} hours
+                          {member.totalHours}
+                          <span className="text-xs text-gray-500 ml-1">
+                            / {expectedHoursInPeriod}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {member.daysWorked} days
+                          {member.daysWorked}
+                          <span className="text-xs text-gray-500 ml-1">
+                            / {workingDaysInPeriod}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex items-center">
-                            <span className={utilizationColor}>
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`font-medium ${getUtilizationColor(
+                                member.utilizationRate
+                              )}`}
+                            >
                               {member.utilizationRate.toFixed(1)}%
                             </span>
-                            <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  member.utilizationRate >= 80
-                                    ? "bg-green-600"
-                                    : member.utilizationRate >= 60
-                                    ? "bg-blue-600"
-                                    : member.utilizationRate >= 40
-                                    ? "bg-yellow-600"
-                                    : "bg-red-600"
-                                }`}
-                                style={{
-                                  width: `${Math.min(
-                                    100,
+                            <div className="flex-1 w-20">
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(
                                     member.utilizationRate
-                                  )}%`,
-                                }}
-                              />
+                                  )}`}
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      member.utilizationRate
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -397,7 +497,7 @@ export default function DashboardPage() {
       {teamPerformanceInsights && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Best Performing Team */}
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-green-800">
@@ -419,7 +519,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Worst Performing Team */}
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-red-200 bg-gradient-to-br from-red-50 to-red-100">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-red-800">
@@ -452,26 +552,26 @@ export default function DashboardPage() {
           </CardHeader>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead>
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Team Lead
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Team Size
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Active Members
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total Hours
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Utilization
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200">
                 {teamLeads.map((lead) => {
                   const complianceRate =
                     lead.teamSize > 0
@@ -488,7 +588,7 @@ export default function DashboardPage() {
                       : "text-red-600";
 
                   return (
-                    <tr key={lead.id}>
+                    <tr key={lead.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {lead.name}
                       </td>
@@ -504,31 +604,36 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {lead.teamTotalHours} hours
+                        {lead.teamTotalHours}
+                        <span className="text-xs text-gray-500 ml-1">
+                          / {expectedHoursInPeriod * lead.teamSize}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <div className="mr-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">
                             {lead.teamUtilizationRate.toFixed(1)}%
-                          </div>
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${
-                                lead.teamUtilizationRate >= 80
-                                  ? "bg-green-600"
-                                  : lead.teamUtilizationRate >= 60
-                                  ? "bg-blue-600"
-                                  : lead.teamUtilizationRate >= 40
-                                  ? "bg-yellow-600"
-                                  : "bg-red-600"
-                              }`}
-                              style={{
-                                width: `${Math.min(
-                                  100,
-                                  lead.teamUtilizationRate
-                                )}%`,
-                              }}
-                            />
+                          </span>
+                          <div className="flex-1 w-20">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  lead.teamUtilizationRate >= 90
+                                    ? "bg-green-600"
+                                    : lead.teamUtilizationRate >= 70
+                                    ? "bg-blue-600"
+                                    : lead.teamUtilizationRate >= 50
+                                    ? "bg-yellow-600"
+                                    : "bg-red-600"
+                                }`}
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    lead.teamUtilizationRate
+                                  )}%`,
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -541,66 +646,116 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Department Stats */}
+      {/* Department Stats - Enhanced */}
       {departmentStats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Total Employees
+                <p className="text-sm font-medium text-blue-600">
+                  Department Size
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-blue-900">
                   {departmentStats.totalEmployees}
                 </p>
+                <p className="text-xs text-blue-700 mt-1">Total employees</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
           </Card>
 
-          <Card>
+          <Card
+            className={`bg-gradient-to-br ${
+              departmentStats.logComplianceRate >= 80
+                ? "from-green-50 to-green-100 border-green-200"
+                : "from-red-50 to-red-100 border-red-200"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p
+                  className={`text-sm font-medium ${
+                    departmentStats.logComplianceRate >= 80
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
                   Log Compliance
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p
+                  className={`text-2xl font-bold ${
+                    departmentStats.logComplianceRate >= 80
+                      ? "text-green-900"
+                      : "text-red-900"
+                  }`}
+                >
                   {departmentStats.logComplianceRate?.toFixed(1) || 0}%
-                  <span className="text-xs text-gray-600 font-normal ml-2">
-                    ({departmentStats.employeesWithLogs}/
-                    {departmentStats.totalEmployees} logged)
-                  </span>
+                </p>
+                <p
+                  className={`text-xs mt-1 ${
+                    departmentStats.logComplianceRate >= 80
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {departmentStats.employeesWithLogs}/
+                  {departmentStats.totalEmployees} logged
                 </p>
               </div>
-              {departmentStats.logComplianceRate < 80 && (
-                <AlertCircle className="h-8 w-8 text-red-500 relative" />
+              {departmentStats.logComplianceRate < 80 ? (
+                <AlertCircle className="h-8 w-8 text-red-500" />
+              ) : (
+                <Users className="h-8 w-8 text-green-500" />
               )}
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-purple-600">
                   Dept. Total Hours
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-purple-900">
                   {departmentStats.departmentTotalHours}
+                </p>
+                <p className="text-xs text-purple-700 mt-1">
+                  of {expectedHoursInPeriod * departmentStats.totalEmployees}{" "}
+                  expected
                 </p>
               </div>
               <Clock className="h-8 w-8 text-purple-500" />
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-orange-600">
                   Dept. Utilization
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-orange-900">
                   {departmentStats.departmentUtilizationRate.toFixed(1)}%
                 </p>
+                <div className="w-full bg-orange-200 rounded-full h-1.5 mt-2">
+                  <div
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      departmentStats.departmentUtilizationRate >= 90
+                        ? "bg-green-600"
+                        : departmentStats.departmentUtilizationRate >= 70
+                        ? "bg-blue-600"
+                        : departmentStats.departmentUtilizationRate >= 50
+                        ? "bg-yellow-600"
+                        : "bg-red-600"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        departmentStats.departmentUtilizationRate
+                      )}%`,
+                    }}
+                  />
+                </div>
               </div>
               <TrendingUp className="h-8 w-8 text-orange-500" />
             </div>

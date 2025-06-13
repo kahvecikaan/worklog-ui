@@ -1,4 +1,3 @@
-// app/worklogs/components/WorklogForm.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -158,8 +157,8 @@ export function WorklogForm({ worklog }: WorklogFormProps) {
           <Input
             label="Hours Worked"
             type="number"
-            step="0.5"
-            min="0.5"
+            step="1"
+            min="1"
             max="8"
             {...register("hoursWorked")}
             error={errors.hoursWorked?.message}

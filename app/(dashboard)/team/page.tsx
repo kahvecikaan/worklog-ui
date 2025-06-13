@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
-import { Users, Clock, TrendingUp, Calendar, ChevronRight } from "lucide-react";
+  Users,
+  Clock,
+  TrendingUp,
+  Calendar,
+  ChevronRight,
+  Info,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -18,6 +18,14 @@ import { toast } from "react-hot-toast";
 import { canViewDepartmentData } from "@/lib/auth";
 import Link from "next/link";
 import { extractErrorMessage } from "@/lib/error-handler";
+import {
+  calculateWorkingDays,
+  calculateExpectedHours,
+  calculateUtilizationRate,
+  getUtilizationColor,
+  getProgressBarColor,
+  getDateRangeForPeriod,
+} from "@/lib/date-utils";
 
 type PeriodFilter = "week" | "month" | "custom";
 
@@ -28,12 +36,20 @@ export default function TeamPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("week");
-  const [startDate, setStartDate] = useState(
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")
-  );
-  const [endDate, setEndDate] = useState(
-    format(endOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")
-  );
+
+  // Initialize with current week dates
+  const { startDate: initialStart, endDate: initialEnd } =
+    getDateRangeForPeriod("week");
+  const [startDate, setStartDate] = useState(initialStart);
+  const [endDate, setEndDate] = useState(initialEnd);
+
+  // Calculate working days and expected hours for the current period
+  const workingDaysInPeriod = calculateWorkingDays(startDate, endDate);
+  const expectedHoursInPeriod = calculateExpectedHours(startDate, endDate);
+
+  const isDepartmentView = user && canViewDepartmentData(user);
+  const viewLabel = isDepartmentView ? "Department" : "Team";
+  const memberLabel = isDepartmentView ? "Employees" : "Team Members";
 
   useEffect(() => {
     loadInitialData();
@@ -95,23 +111,15 @@ export default function TeamPage() {
 
   const handlePeriodChange = (period: PeriodFilter) => {
     setPeriodFilter(period);
-    const today = new Date();
 
-    switch (period) {
-      case "week":
-        setStartDate(
-          format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd")
-        );
-        setEndDate(format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"));
-        break;
-      case "month":
-        setStartDate(format(startOfMonth(today), "yyyy-MM-dd"));
-        setEndDate(format(endOfMonth(today), "yyyy-MM-dd"));
-        break;
+    if (period !== "custom") {
+      const { startDate: newStart, endDate: newEnd } =
+        getDateRangeForPeriod(period);
+      setStartDate(newStart);
+      setEndDate(newEnd);
     }
   };
 
-  // Calculate team statistics
   const teamStats = employees.map((employee) => {
     const employeeWorklogs = worklogs.filter(
       (w) => w.employeeId === employee.id
@@ -122,11 +130,18 @@ export default function TeamPage() {
     );
     const daysWorked = new Set(employeeWorklogs.map((w) => w.workDate)).size;
 
+    // Calculate utilization rate based on actual working days
+    const utilizationRate = calculateUtilizationRate(
+      totalHours,
+      expectedHoursInPeriod
+    );
+
     return {
       ...employee,
       totalHours,
       daysWorked,
       averageHours: daysWorked > 0 ? totalHours / daysWorked : 0,
+      utilizationRate,
     };
   });
 
@@ -137,8 +152,17 @@ export default function TeamPage() {
   const averageTeamHours =
     teamStats.length > 0 ? totalTeamHours / teamStats.length : 0;
 
+  // Calculate overall team utilization
+  const teamUtilizationRate =
+    teamStats.length > 0
+      ? calculateUtilizationRate(
+          totalTeamHours,
+          expectedHoursInPeriod * teamStats.length
+        )
+      : 0;
+
   const employeeOptions = employees.map((emp) => ({
-    value: emp.id,
+    value: emp.id.toString(),
     label: emp.fullName,
   }));
 
@@ -162,11 +186,10 @@ export default function TeamPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          {canViewDepartmentData(user) ? "Department" : "Team"} Overview
+          {viewLabel} Overview
         </h1>
         <p className="text-gray-600">
-          Manage and monitor{" "}
-          {canViewDepartmentData(user) ? "department" : "team"} performance
+          Manage and monitor {viewLabel.toLowerCase()} performance
         </p>
       </div>
 
@@ -192,7 +215,7 @@ export default function TeamPage() {
         <div className="flex-1 max-w-xs">
           <Select
             options={[
-              { value: "", label: "All Team Members" },
+              { value: "", label: `All ${memberLabel}` },
               ...employeeOptions,
             ]}
             value={selectedEmployee}
@@ -223,16 +246,35 @@ export default function TeamPage() {
         </div>
       </div>
 
+      {/* Period Info Banner */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p className="font-medium">Period Information</p>
+            <p className="mt-1">
+              Selected period contains{" "}
+              <strong>{workingDaysInPeriod} working days</strong>, expecting{" "}
+              <strong>{expectedHoursInPeriod} total hours</strong> per employee
+              (8 hours/day).
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600">
-                Total Team Hours
+                Total {viewLabel} Hours
               </p>
               <p className="text-2xl font-bold text-blue-900">
                 {totalTeamHours}
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                of {expectedHoursInPeriod * teamStats.length} expected
               </p>
             </div>
             <Clock className="h-8 w-8 text-blue-500" />
@@ -242,9 +284,14 @@ export default function TeamPage() {
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-600">Team Size</p>
+              <p className="text-sm font-medium text-green-600">
+                {viewLabel} Size
+              </p>
               <p className="text-2xl font-bold text-green-900">
                 {employees.length}
+              </p>
+              <p className="text-xs text-green-700 mt-1">
+                {memberLabel.toLowerCase()}
               </p>
             </div>
             <Users className="h-8 w-8 text-green-500" />
@@ -260,8 +307,26 @@ export default function TeamPage() {
               <p className="text-2xl font-bold text-purple-900">
                 {averageTeamHours.toFixed(1)}
               </p>
+              <p className="text-xs text-purple-700 mt-1">
+                of {expectedHoursInPeriod} expected
+              </p>
             </div>
             <TrendingUp className="h-8 w-8 text-purple-500" />
+          </div>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-orange-600">
+                {viewLabel} Utilization
+              </p>
+              <p className="text-2xl font-bold text-orange-900">
+                {teamUtilizationRate.toFixed(1)}%
+              </p>
+              <p className="text-xs text-orange-700 mt-1">overall rate</p>
+            </div>
+            <Calendar className="h-8 w-8 text-orange-500" />
           </div>
         </Card>
       </div>
@@ -269,14 +334,14 @@ export default function TeamPage() {
       {/* Team Members Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Team Members Performance</CardTitle>
+          <CardTitle>{viewLabel} Performance</CardTitle>
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Employee
+                  {isDepartmentView ? "Employee" : "Team Member"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role / Grade
@@ -291,23 +356,20 @@ export default function TeamPage() {
                   Avg Hours/Day
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Progress
+                  Utilization
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {teamStats.map((stat) => {
-                const expectedHours = 40; // Weekly expected hours
-                const progress = (stat.totalHours / expectedHours) * 100;
-
                 return (
                   <tr key={stat.id} className="hover:bg-blue-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link
-                        href={`/employees/${stat.id}`}
+                        href={`/employees/${stat.id}?startDate=${startDate}&endDate=${endDate}&period=${periodFilter}`}
                         className="flex items-center hover:text-blue-600 transition-colors"
                       >
                         <div className="flex-shrink-0 h-10 w-10">
@@ -326,18 +388,25 @@ export default function TeamPage() {
                         </div>
                       </Link>
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{stat.role}</div>
                       <div className="text-sm text-gray-500">{stat.grade}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {stat.totalHours} hours
+                      <div className="text-sm font-medium text-gray-900">
+                        {stat.totalHours}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        of {expectedHoursInPeriod} expected
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {stat.daysWorked} days
+                      <div className="text-sm font-medium text-gray-900">
+                        {stat.daysWorked}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        of {workingDaysInPeriod} working days
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -346,31 +415,34 @@ export default function TeamPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-sm font-medium ${getUtilizationColor(
+                            stat.utilizationRate
+                          )}`}
+                        >
+                          {stat.utilizationRate.toFixed(1)}%
+                        </span>
+                        <div className="flex-1 w-5">
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
-                              className={`h-2 rounded-full ${
-                                progress >= 100
-                                  ? "bg-green-600"
-                                  : progress >= 75
-                                  ? "bg-blue-600"
-                                  : progress >= 50
-                                  ? "bg-yellow-600"
-                                  : "bg-red-600"
-                              }`}
-                              style={{ width: `${Math.min(100, progress)}%` }}
+                              className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(
+                                stat.utilizationRate
+                              )}`}
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  stat.utilizationRate
+                                )}%`,
+                              }}
                             />
                           </div>
                         </div>
-                        <span className="ml-2 text-sm text-gray-600">
-                          {progress.toFixed(0)}%
-                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link
-                        href={`/employees/${stat.id}`}
+                        href={`/employees/${stat.id}?startDate=${startDate}&endDate=${endDate}&period=${periodFilter}`}
                         className="text-blue-600 hover:text-blue-900 flex items-center justify-center"
                       >
                         <span>View Details</span>
@@ -380,6 +452,17 @@ export default function TeamPage() {
                   </tr>
                 );
               })}
+              {teamStats.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={isDepartmentView ? 8 : 7}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    No {memberLabel.toLowerCase()} found for the selected
+                    period.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
