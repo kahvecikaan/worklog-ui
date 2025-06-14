@@ -17,7 +17,7 @@ import { dashboardApi } from "@/lib/api";
 import { DashboardResponse } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { extractErrorMessage } from "@/lib/error-handler";
-import { canViewDepartmentData, getRoleDisplayName } from "@/lib/auth";
+import { canViewDepartmentData } from "@/lib/auth";
 import {
   calculateWorkingDays,
   calculateExpectedHours,
@@ -123,7 +123,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Stats - This component is now role-aware */}
+      {/* Quick Stats - role-aware! */}
       <DashboardStats />
 
       {/* Period Filter */}
@@ -183,9 +183,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Personal Summary - Enhanced with utilization */}
+      {/* Personal Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-200 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600">Total Hours</p>
@@ -200,7 +200,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <Card className="bg-gradient-to-br from-green-50 to-green-200 border-green-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-600">Days Worked</p>
@@ -215,7 +215,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-200 border-purple-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-purple-600">
@@ -230,7 +230,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-200 border-orange-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-orange-600">Utilization</p>
@@ -256,7 +256,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-200 border-indigo-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-indigo-600">Period</p>
@@ -301,10 +301,10 @@ export default function DashboardPage() {
       {/* Team Lead View - Team Members Table */}
       {teamMembers && teamMembers.length > 0 && (
         <>
-          {/* Team Statistics Cards - Updated labels */}
+          {/* Team Statistics Cards */}
           {teamStats && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-200 border-blue-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-600">
@@ -321,7 +321,7 @@ export default function DashboardPage() {
                 </div>
               </Card>
 
-              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <Card className="bg-gradient-to-br from-green-50 to-green-200 border-green-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-green-600">
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                 </div>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-200 border-purple-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-purple-600">
@@ -355,7 +355,7 @@ export default function DashboardPage() {
                 </div>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-200 border-orange-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-orange-600">
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                     const hasLoggedWork = member.totalHours > 0;
 
                     return (
-                      <tr key={member.id} className="hover:bg-gray-50">
+                      <tr key={member.id} className="hover:bg-blue-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {member.name}
                         </td>
@@ -473,11 +473,11 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {hasLoggedWork ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-200 text-green-800">
                               Active
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <span className="inline-flex items-center w-17 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-200 text-red-800">
                               <AlertCircle className="w-3 h-3 mr-1" />
                               No logs
                             </span>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
       {teamPerformanceInsights && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Best Performing Team */}
-          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-200">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-green-800">
@@ -519,7 +519,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Worst Performing Team */}
-          <Card className="border-red-200 bg-gradient-to-br from-red-50 to-red-100">
+          <Card className="border-red-200 bg-gradient-to-br from-red-50 to-red-200">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-red-800">
@@ -588,7 +588,7 @@ export default function DashboardPage() {
                       : "text-red-600";
 
                   return (
-                    <tr key={lead.id} className="hover:bg-gray-50">
+                    <tr key={lead.id} className="hover:bg-blue-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {lead.name}
                       </td>
@@ -609,7 +609,11 @@ export default function DashboardPage() {
                           / {expectedHoursInPeriod * lead.teamSize}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm ${getUtilizationColor(
+                          lead.teamUtilizationRate
+                        )}`}
+                      >
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">
                             {lead.teamUtilizationRate.toFixed(1)}%
@@ -617,15 +621,9 @@ export default function DashboardPage() {
                           <div className="flex-1 w-20">
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
-                                  lead.teamUtilizationRate >= 90
-                                    ? "bg-green-600"
-                                    : lead.teamUtilizationRate >= 70
-                                    ? "bg-blue-600"
-                                    : lead.teamUtilizationRate >= 50
-                                    ? "bg-yellow-600"
-                                    : "bg-red-600"
-                                }`}
+                                className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(
+                                  lead.teamUtilizationRate
+                                )}`}
                                 style={{
                                   width: `${Math.min(
                                     100,
@@ -646,10 +644,10 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Department Stats - Enhanced */}
+      {/* Department Stats */}
       {departmentStats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-200 border-blue-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-blue-600">
@@ -667,8 +665,8 @@ export default function DashboardPage() {
           <Card
             className={`bg-gradient-to-br ${
               departmentStats.logComplianceRate >= 80
-                ? "from-green-50 to-green-100 border-green-200"
-                : "from-red-50 to-red-100 border-red-200"
+                ? "from-green-50 to-green-200 border-green-200"
+                : "from-red-50 to-red-200 border-red-200"
             }`}
           >
             <div className="flex items-center justify-between">
@@ -710,7 +708,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-200 border-purple-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-600">
@@ -728,7 +726,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-200 border-orange-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-600">

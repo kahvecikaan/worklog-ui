@@ -65,9 +65,9 @@ export function DashboardStats() {
   const weekProgress = Math.min(100, (stats.weekHours / HOURS_PER_WEEK) * 100);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {/* Today's Hours Card */}
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+      <Card className="bg-gradient-to-br from-blue-50 to-blue-200 border-blue-200">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-blue-600">Today's Hours</p>
@@ -90,7 +90,7 @@ export function DashboardStats() {
       </Card>
 
       {/* Week Hours Card with Progress */}
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+      <Card className="bg-gradient-to-br from-green-50 to-green-200 border-green-200">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <p className="text-sm font-medium text-green-600">Week Hours</p>
@@ -101,9 +101,9 @@ export function DashboardStats() {
               </span>
             </p>
             <div className="mt-2">
-              <div className="w-full bg-green-200 rounded-full h-1.5">
+              <div className="w-full bg-green-300 rounded-full h-1.5">
                 <div
-                  className="bg-green-600 h-1.5 rounded-full transition-all duration-300"
+                  className="bg-green-700 h-1.5 rounded-full transition-all duration-300"
                   style={{ width: `${weekProgress}%` }}
                 />
               </div>
@@ -120,7 +120,7 @@ export function DashboardStats() {
       {stats.teamSize !== undefined && stats.teamSize > 0 ? (
         <>
           {/* Team/Department Size Card */}
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-200 border-purple-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-600">
@@ -138,7 +138,7 @@ export function DashboardStats() {
           </Card>
 
           {/* Team/Department Activity Card */}
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-200 border-orange-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-600">
@@ -183,7 +183,7 @@ export function DashboardStats() {
       ) : (
         <>
           {/* Personal Productivity Card (for employees without teams) */}
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-200 border-purple-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-600">
@@ -201,7 +201,7 @@ export function DashboardStats() {
           </Card>
 
           {/* Month to Date Card */}
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-200 border-orange-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-600">
