@@ -209,21 +209,11 @@ export default function EmployeeDetailPage() {
     }
   };
 
-  // Enhanced back navigation that preserves date context
   const handleBackNavigation = () => {
-    // Check if we came from a specific page with date context
-    const referrer = document.referrer;
-    const isFromTeamPage = referrer.includes("/team");
-
-    if (isFromTeamPage) {
-      // Navigate back to team page with the updated date parameters
-      router.push(
-        `/team?startDate=${startDate}&endDate=${endDate}&period=${periodFilter}`
-      );
-    } else {
-      // Standard back navigation (this would use the previous date parameters if we're coming from /team)
-      router.back();
-    }
+    // Navigate back to team page with the updated date parameters
+    router.push(
+      `/team?startDate=${startDate}&endDate=${endDate}&period=${periodFilter}`
+    );
   };
 
   // Calculate statistics
