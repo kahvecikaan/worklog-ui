@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format, parseISO } from "date-fns";
 import {
   Calendar,
   Clock,
@@ -25,6 +24,7 @@ import {
   getUtilizationColor,
   getProgressBarColor,
   getDateRangeForPeriod,
+  formatPeriodDescription,
 } from "@/lib/date-utils";
 
 type PeriodFilter = "week" | "month" | "custom";
@@ -111,6 +111,11 @@ export default function DashboardPage() {
     expectedHoursInPeriod
   );
 
+  const periodDescription = formatPeriodDescription(
+    periodSummary.startDate,
+    periodSummary.endDate
+  );
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -174,10 +179,8 @@ export default function DashboardPage() {
             <p className="mt-1">
               Showing data for{" "}
               <strong>{workingDaysInPeriod} working days</strong> (
-              {format(parseISO(startDate), "MMM d")} -{" "}
-              {format(parseISO(endDate), "MMM d, yyyy")}), expecting{" "}
-              <strong>{expectedHoursInPeriod} hours</strong> at full
-              utilization.
+              {periodDescription}
+              ), expecting <strong>{expectedHoursInPeriod} hours</strong>…
             </p>
           </div>
         </div>
@@ -261,7 +264,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm font-medium text-indigo-600">Period</p>
               <p className="text-lg font-semibold text-indigo-900">
-                {periodSummary.period}
+                {periodDescription}
               </p>
             </div>
             <Calendar className="h-8 w-8 text-indigo-500" />

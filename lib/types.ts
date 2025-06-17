@@ -68,7 +68,8 @@ export interface DashboardResponse {
     totalDays: number;
     daysWorked: number;
     averageHoursPerDay: number;
-    period: string;
+    startDate:string;
+    endDate:string;
   };
   worklogTypeBreakdown: Array<{
     typeName: string;

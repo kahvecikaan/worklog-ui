@@ -7,7 +7,10 @@ import {
     startOfMonth,
     endOfMonth,
     format,
-    isValid
+    isValid,
+    isEqual,
+    isSameMonth,
+    isSameYear
   } from 'date-fns';
   
   export const HOURS_PER_DAY = 8;
@@ -90,3 +93,43 @@ import {
     const date = parseISO(dateStr);
     return isValid(date);
   }
+
+ /**
+  * Format a date range into a human-readable period description
+  * @param startDate - ISO date string for start date
+  * @param endDate - ISO date string for end date
+  * @returns Formatted period string (e.g., "This Week", "Jan 15 - Feb 28, 2024")
+  */
+ export const formatPeriodDescription = (startDate: string, endDate: string): string => {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    const now = new Date();
+    
+    // Check if it's the current week
+    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    if (isEqual(start, currentWeekStart) && isEqual(end, currentWeekEnd)) {
+      return "This Week";
+    }
+    
+    // Check if it's the current month
+    const currentMonthStart = startOfMonth(now);
+    const currentMonthEnd = endOfMonth(now);
+    if (isEqual(start, currentMonthStart) && isEqual(end, currentMonthEnd)) {
+      return "This Month";
+    }
+    
+    // Format custom date ranges
+    if (isSameYear(start, end)) {
+      if (isSameMonth(start, end)) {
+        // Same month and year: "Jan 15 - 22, 2024"
+        return `${format(start, "MMM d")} - ${format(end, "d, yyyy")}`;
+      } else {
+        // Same year, different months: "Jan 15 - Feb 28, 2024"
+        return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
+      }
+    } else {
+      // Different years: "Dec 25, 2023 - Jan 5, 2024"
+      return `${format(start, "MMM d, yyyy")} - ${format(end, "MMM d, yyyy")}`;
+    }
+  };
