@@ -98,7 +98,7 @@ import {
   * Format a date range into a human-readable period description
   * @param startDate - ISO date string for start date
   * @param endDate - ISO date string for end date
-  * @returns Formatted period string (e.g., "This Week", "Jan 15 - Feb 28, 2024")
+  * @returns Formatted period string (e.g., "This Week", "Jan 15 - Feb 28, 2025")
   */
  export const formatPeriodDescription = (startDate: string, endDate: string): string => {
     const start = parseISO(startDate);
@@ -122,14 +122,14 @@ import {
     // Format custom date ranges
     if (isSameYear(start, end)) {
       if (isSameMonth(start, end)) {
-        // Same month and year: "Jan 15 - 22, 2024"
+        // Same month and year: "Jan 15 - 22, 2025"
         return `${format(start, "MMM d")} - ${format(end, "d, yyyy")}`;
       } else {
-        // Same year, different months: "Jan 15 - Feb 28, 2024"
+        // Same year, different months: "Jan 15 - Feb 28, 2025"
         return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
       }
     } else {
-      // Different years: "Dec 25, 2023 - Jan 5, 2024"
+      // Different years: "Dec 25, 2024 - Jan 5, 2025"
       return `${format(start, "MMM d, yyyy")} - ${format(end, "MMM d, yyyy")}`;
     }
   };
