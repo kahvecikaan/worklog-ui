@@ -8,12 +8,12 @@ import { toast } from "react-hot-toast";
 import {
   Home,
   FileText,
-  Users,
   LogOut,
   Menu,
   X,
   Building,
   User,
+  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { authApi } from "@/lib/api";
@@ -68,6 +68,15 @@ export function Navbar() {
       name: canViewDepartmentData(user) ? "Department" : "Team",
       href: "/team",
       icon: canViewDepartmentData(user) ? Building : User,
+    });
+  }
+
+  // Add Department Hierarchy for Directors
+  if (user && canViewDepartmentData(user)) {
+    navigation.push({
+      name: "Org Chart",
+      href: "/department-hierarchy",
+      icon: GitBranch,
     });
   }
 
