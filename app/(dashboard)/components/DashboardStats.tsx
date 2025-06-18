@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { dashboardApi, authApi } from "@/lib/api";
-import { DashboardStats as DashboardStatsType, User } from "@/lib/types";
+import { QuickStats as DashboardStatsType, User } from "@/lib/types";
 import { canViewDepartmentData } from "@/lib/auth";
 import { HOURS_PER_WEEK } from "@/lib/date-utils";
 
