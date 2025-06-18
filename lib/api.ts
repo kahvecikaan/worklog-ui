@@ -7,9 +7,13 @@ import {
   WorklogType, 
   Worklog, 
   WorklogCreateRequest,
-  DashboardStats,
+  QuickStats,
   DashboardResponse,
-  Employee
+  Employee,
+  DepartmentSummary,
+  DepartmentDetails,
+  DepartmentHierarchy,
+  UserDepartment
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -140,8 +144,8 @@ export const dashboardApi = {
     return response.data;
   },
 
-  getQuickStats: async (): Promise<DashboardStats> => {
-    const response = await api.get<DashboardStats>('/dashboard/stats/quick');
+  getQuickStats: async (): Promise<QuickStats> => {
+    const response = await api.get<QuickStats>('/dashboard/stats/quick');
     return response.data;
   },
 
@@ -184,5 +188,28 @@ export const employeeApi = {
     return response.data;
   },
 };
+
+// Department API
+export const departmentApi = {
+    getAllDepartments: async(): Promise<DepartmentSummary[]> => {
+        const response = await api.get<DepartmentSummary[]>('/departments');
+        return response.data;
+    },
+
+    getDepartment: async(id:number): Promise<DepartmentDetails> => {
+        const response = await api.get<DepartmentDetails>(`/departments/${id}`);
+        return response.data;
+    },
+
+    getDepartmentHierarchy: async(id: number): Promise<DepartmentHierarchy> => {
+        const response = await api.get<DepartmentHierarchy>(`/departments/${id}/hierarchy`);
+        return response.data;
+    },
+
+    getMyDepartment: async(): Promise<UserDepartment> => {
+        const response = await api.get<UserDepartment>('/departments/my');
+        return response.data;
+    }
+}
 
 export default api;

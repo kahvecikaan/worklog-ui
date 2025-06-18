@@ -52,7 +52,7 @@ export interface WorklogCreateRequest {
   projectName: string;
 }
 
-export interface DashboardStats {
+export interface QuickStats {
   todayHours: number;
   weekHours: number;
   remainingWeekHours: number;
@@ -141,3 +141,53 @@ export interface Employee {
   departmentName: string;
   isActive: boolean;
 }
+
+ export interface DepartmentSummary {
+    id: number;
+    name: string;
+    code: string;
+    directorId: number | null;
+    directorName: string | null;
+    employeeCount: number;
+ }
+
+ export interface DepartmentDetails {
+    id: number;
+    name: string;
+    code: string;
+    directorId: number | null;
+    directorName: string | null;
+    employeeCount: number;
+    teamLeadCount: number;
+  }
+  
+  export interface DepartmentHierarchy {
+    department: string;
+    departmentCode: string;
+    director?: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    teams: Array<{
+      teamLeadId: number;
+      teamLeadName: string;
+      teamLeadEmail: string;
+      members: Array<{
+        id: number;
+        name: string;
+        email: string;
+        grade: string;
+      }>;
+      teamSize: number;
+    }>;
+    totalEmployees: number;
+    totalTeamLeads: number;
+  }
+
+  export interface UserDepartment {
+    id: number;
+    name: string;
+    code: string;
+    directorName: string | null;
+  }
