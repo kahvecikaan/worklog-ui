@@ -175,10 +175,6 @@ export default function WorklogsPage() {
           <p className="text-gray-500 mb-4">
             No worklogs found for this period
           </p>
-          <Button onClick={() => router.push("/worklogs/new")}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Your First Worklog
-          </Button>
         </Card>
       ) : (
         <div className="space-y-6">
