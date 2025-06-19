@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Building,
   Users,
@@ -30,21 +30,37 @@ interface TeamNodeProps {
   team: DepartmentHierarchy["teams"][0];
   searchTerm: string;
   forceExpanded?: boolean;
+  onManualToggle?: () => void;
 }
 
-function TeamNode({ team, searchTerm, forceExpanded }: TeamNodeProps) {
+function highlightText(text: string, searchTerm: string): React.ReactNode {
+  if (!searchTerm) return text;
+  const parts = text.split(new RegExp(`(${searchTerm})`, "gi"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === searchTerm.toLowerCase() ? (
+      <span key={i} className="bg-yellow-200 font-semibold">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+}
+
+function TeamNode({
+  team,
+  searchTerm,
+  forceExpanded,
+  onManualToggle,
+}: TeamNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSearchMatch, setIsSearchMatch] = useState(false);
+  const wasManuallyExpanded = useRef(false);
   const router = useRouter();
 
-  // Update expansion state when forceExpanded changes
+  // Combined effect to handle search and forceExpanded
   useEffect(() => {
-    if (forceExpanded !== undefined) {
-      setIsExpanded(forceExpanded);
-    }
-  }, [forceExpanded]);
-
-  // Auto-expand if search matches team or members
-  useEffect(() => {
+    // Search always takes precedence when active
     if (searchTerm) {
       const teamMatches = team.teamLeadName
         .toLowerCase()
@@ -52,36 +68,54 @@ function TeamNode({ team, searchTerm, forceExpanded }: TeamNodeProps) {
       const memberMatches = team.members.some((member) =>
         member.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      if (teamMatches || memberMatches) {
+
+      const hasMatch = teamMatches || memberMatches;
+      setIsSearchMatch(hasMatch);
+
+      // Only expand if there's a match
+      if (hasMatch) {
         setIsExpanded(true);
       }
+      return; // Don't apply other logic while searching
     }
-  }, [searchTerm, team]);
 
-  const highlightText = (text: string) => {
-    if (!searchTerm) return text;
-    const parts = text.split(new RegExp(`(${searchTerm})`, "gi"));
-    return parts.map((part, i) =>
-      part.toLowerCase() === searchTerm.toLowerCase() ? (
-        <span key={i} className="bg-yellow-200 font-semibold">
-          {part}
-        </span>
-      ) : (
-        part
-      )
-    );
+    // Clear search match indicator
+    setIsSearchMatch(false);
+
+    // Priority 2: When no search, apply global control if defined
+    if (forceExpanded !== undefined) {
+      setIsExpanded(forceExpanded);
+      return;
+    }
+
+    // Priority 3: When no search and no global control, use manual state
+    setIsExpanded(wasManuallyExpanded.current);
+  }, [forceExpanded, searchTerm, team]);
+
+  // Track manual expansions
+  const handleToggle = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    wasManuallyExpanded.current = newState;
+
+    // Reset global state to "user" when manually toggling
+    onManualToggle?.();
   };
 
   return (
     <div className="ml-8 mt-4">
-      <Card className="border-blue-200 bg-blue-50">
+      <Card
+        className={`border-blue-200 bg-blue-50 ${
+          isSearchMatch ? "ring-2 ring-yellow-400" : ""
+        }`}
+      >
         <div className="p-4">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={handleToggle}
                 className="mt-1 p-1"
               >
                 {isExpanded ? (
@@ -94,7 +128,7 @@ function TeamNode({ team, searchTerm, forceExpanded }: TeamNodeProps) {
                 <div className="flex items-center space-x-2">
                   <Users className="h-5 w-5 text-blue-600" />
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {highlightText(team.teamLeadName)}
+                    {highlightText(team.teamLeadName, searchTerm)}
                   </h3>
                   <span className="text-m text-gray-900">Team Lead</span>
                 </div>
@@ -122,32 +156,42 @@ function TeamNode({ team, searchTerm, forceExpanded }: TeamNodeProps) {
 
           {isExpanded && team.members.length > 0 && (
             <div className="mt-4 ml-8 space-y-2">
-              {team.members.map((member) => (
-                <Link
-                  key={member.id}
-                  href={`/employees/${member.id}`}
-                  className="block"
-                >
-                  <Card className="border-gray-900 hover:border-blue-300 hover:shadow-lg transition-all">
-                    <div className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <User className="h-4 w-4 text-gray-900" />
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {highlightText(member.name)}
-                            </p>
-                            <p className="text-m text-gray-900">
-                              {member.grade} • {member.email}
-                            </p>
+              {team.members.map((member) => {
+                const memberMatches =
+                  searchTerm &&
+                  member.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+                return (
+                  <Link
+                    key={member.id}
+                    href={`/employees/${member.id}`}
+                    className="block"
+                  >
+                    <Card
+                      className={`border-gray-900 hover:border-blue-300 hover:shadow-lg transition-all ${
+                        memberMatches ? "ring-2 ring-yellow-400" : ""
+                      }`}
+                    >
+                      <div className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <User className="h-4 w-4 text-gray-900" />
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {highlightText(member.name, searchTerm)}
+                              </p>
+                              <p className="text-m text-gray-900">
+                                {member.grade} • {member.email}
+                              </p>
+                            </div>
                           </div>
+                          <ChevronRight className="h-8 w-8 text-blue-600 hover:bg-blue-100 rounded" />
                         </div>
-                        <ChevronRight className="h-8 w-8 text-blue-600 hover:bg-blue-100 rounded" />
                       </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
@@ -165,13 +209,15 @@ export default function DepartmentHierarchyPage() {
   const [hierarchy, setHierarchy] = useState<DepartmentHierarchy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // "none" -> force all teams to collapse
-  // "all" -> force all teams to expand
-  // "user" -> let each team to decide for itself (default)
   const [expandState, setExpandState] = useState<"none" | "all" | "user">(
     "user"
   );
+
+  useEffect(() => {
+    if (searchTerm === "") {
+      setExpandState("user");
+    }
+  }, [searchTerm]);
 
   useEffect(() => {
     loadInitialData();
@@ -278,7 +324,7 @@ export default function DepartmentHierarchyPage() {
           <div className="p-6 text-center">
             <Building className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Access Denied
+              Access Restricted
             </h2>
             <p className="text-gray-600">
               This page is only accessible to directors.
@@ -405,14 +451,31 @@ export default function DepartmentHierarchyPage() {
               {/* Director */}
               {hierarchy.director && (
                 <Link href={`/employees/${hierarchy.director.id}`}>
-                  <Card className="border-green-200 bg-green-50 hover:shadow-lg transition-shadow">
+                  <Card
+                    className={`border-green-200 bg-green-50 hover:shadow-lg transition-shadow ${
+                      searchTerm &&
+                      hierarchy.director.name
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase())
+                        ? "ring-2 ring-yellow-400"
+                        : ""
+                    }`}
+                  >
                     <div className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <Building className="h-6 w-6 text-green-600" />
                           <div>
                             <h2 className="text-xl font-bold text-gray-900">
-                              {hierarchy.director.name}
+                              {searchTerm &&
+                              hierarchy.director.name
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase())
+                                ? highlightText(
+                                    hierarchy.director.name,
+                                    searchTerm
+                                  )
+                                : hierarchy.director.name}
                             </h2>
                             <p className="text-m text-gray-900">
                               Director • {hierarchy.director.email}
