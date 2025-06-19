@@ -140,6 +140,8 @@ export interface Employee {
   departmentId: number;
   departmentName: string;
   isActive: boolean;
+  startDate: string;
+  endDate: string;
 }
 
  export interface DepartmentSummary {
